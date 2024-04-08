@@ -1,34 +1,54 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { IAgentFlowSpec, ILLMConfig, IModelConfig, ISkill } from "../../types";
-import {
-  GroupView,
-  ControlRowView,
-  ModelSelector,
-  SkillSelector,
-  Card,
-} from "../../atoms";
+import { GroupView, ControlRowView, SkillSelector, Card } from "../../atoms";
 import {
   checkAndSanitizeInput,
   fetchJSON,
   getServerUrl,
+  obscureString,
   sampleAgentConfig,
+  truncateText,
 } from "../../utils";
-import { Button, Input, Select, Slider, message } from "antd";
+import {
+  Button,
+  Divider,
+  Dropdown,
+  Input,
+  MenuProps,
+  Select,
+  Slider,
+  Space,
+  Steps,
+  Tabs,
+  Tooltip,
+  message,
+  theme,
+} from "antd";
 import TextArea from "antd/es/input/TextArea";
 import {
+  BugAntIcon,
   CodeBracketSquareIcon,
+  CpuChipIcon,
+  ExclamationTriangleIcon,
+  PlusIcon,
   RectangleGroupIcon,
+  Square2StackIcon,
   UserCircleIcon,
   UserGroupIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { Agent } from "undici-types";
 import { set } from "js-cookie";
 import { appContext } from "../../../hooks/provider";
+import Modal from "antd/es/modal/Modal";
 
-const AgentTypeView = ({
-  setAgentType,
+const { useToken } = theme;
+const AgentTypeSelector = ({
+  agent,
+  setAgent,
 }: {
-  setAgentType: (newAgentType: string) => void;
+  agent: IAgentFlowSpec | null;
+  setAgent: (newAgent: IAgentFlowSpec) => void;
 }) => {
   const iconClass = "h-6 w-6 inline-block ";
   const agentTypes = [
@@ -64,7 +84,9 @@ const AgentTypeView = ({
           title={<div className="  ">{agentType.label}</div>}
           onClick={() => {
             setSelectedAgentType(agentType.value);
-            setAgentType(agentType.value);
+            if (agent) {
+              setAgent({ ...agent, type: agentType.value });
+            }
           }}
         >
           <div style={{ minHeight: "35px" }} className="my-2   break-words">
@@ -82,34 +104,26 @@ const AgentTypeView = ({
 
   return (
     <>
-      <div className="py-3">Select Agent Type</div>
+      <div className="pb-3">Select Agent Type</div>
       <ul className="inline-flex gap-2">{agentTypeRows}</ul>
     </>
   );
 };
 
 const AgentMainView = ({
-  viewStatus,
-  setViewStatus,
+  agent,
+  setAgent,
 }: {
-  viewStatus: Record<string, boolean>;
-  setViewStatus: (newViewStatus: Record<string, boolean>) => void;
+  agent: IAgentFlowSpec | null;
+  setAgent: (newAgent: IAgentFlowSpec) => void;
 }) => {
-  const [agentType, setAgentType] = React.useState<string | null>(null);
-  const [flowSpec, setFlowSpec] = React.useState<IAgentFlowSpec | null>(null);
-
-  useEffect(() => {
-    console.log("agentType", agentType);
-    if (agentType) {
-      setFlowSpec(sampleAgentConfig(agentType));
-    }
-  }, [agentType]);
   return (
     <div>
-      {!agentType && <AgentTypeView setAgentType={setAgentType} />}
-      {agentType !== null && flowSpec && (
-        <AgentConfigView flowSpec={flowSpec} setFlowSpec={setFlowSpec} />
+      {agent?.type && <AgentTypeSelector agent={agent} setAgent={setAgent} />}
+      {agent?.type !== null && agent && (
+        <AgentConfigView flowSpec={agent} setFlowSpec={setAgent} />
       )}
+      <div>flowspec id {agent?.id}</div>
     </div>
   );
 };
@@ -163,6 +177,8 @@ const AgentConfigView = ({
       if (data && data.status) {
         message.success(data.message);
         console.log("agents", data.data);
+        const newAgent = data.data;
+        setFlowSpec(newAgent);
         // setAgents(data.data);
       } else {
         message.error(data.message);
@@ -303,203 +319,250 @@ const AgentConfigView = ({
 };
 
 export const AgentFlowSpecView = ({
-  title = "Agent Specification",
-  flowSpec,
-  setFlowSpec,
+  agent,
+  setAgent,
 }: {
-  title: string;
-  flowSpec: IAgentFlowSpec;
-  setFlowSpec: (newFlowSpec: IAgentFlowSpec) => void;
-  editMode?: boolean;
+  agent: IAgentFlowSpec | null;
+  setAgent: (newAgent: IAgentFlowSpec) => void;
 }) => {
-  // Local state for the FlowView component
-  const [localFlowSpec, setLocalFlowSpec] =
-    React.useState<IAgentFlowSpec>(flowSpec);
-
-  // Required to monitor localAgent updates that occur in GroupChatFlowSpecView and reflect updates.
-  useEffect(() => {
-    setLocalFlowSpec(flowSpec);
-  }, [flowSpec]);
-
-  const views = [
+  let items = [
     {
-      title: "Agent Configuration",
-      slug: "agentconfig",
-    },
-    {
-      title: "Agent Models",
-      slug: "agentmodels",
-    },
-    {
-      title: "Agent Skills",
-      slug: "agentskills",
+      label: (
+        <div className="w-full  ">
+          {" "}
+          <BugAntIcon className="h-4 w-4 inline-block mr-1" />
+          Configuration
+        </div>
+      ),
+      key: "1",
+      children: <AgentMainView agent={agent} setAgent={setAgent} />,
     },
   ];
 
-  const [viewStatus, setViewStatus] = React.useState<Record<string, boolean>>(
-    views.reduce((acc: Record<string, boolean>, view) => {
-      acc[view.slug] = false;
-      return acc;
-    }, {})
-  );
+  if (agent) {
+    if (agent?.id) {
+      items.push({
+        label: (
+          <div className="w-full  ">
+            {" "}
+            <CpuChipIcon className="h-4 w-4 inline-block mr-1" />
+            Models
+          </div>
+        ),
+        key: "2",
+        children: <ModelsView id={agent?.id} />,
+      });
 
-  const [agentType, setAgentType] = React.useState<string | null>(null);
-
-  const RenderView = ({ viewIndex }: { viewIndex: number }) => {
-    const view = views[viewIndex];
-    switch (view.slug) {
-      case "agentconfig":
-        return (
-          <AgentMainView
-            viewStatus={viewStatus}
-            setViewStatus={setViewStatus}
-          />
-        );
-      case "agentmodels":
-        return <div> .. models </div>;
-
-      default:
-        return <></>;
+      items.push({
+        label: (
+          <>
+            <BugAntIcon className="h-4 w-4 inline-block mr-1" />
+            Skills
+          </>
+        ),
+        key: "3",
+        children: <SkillsView id={agent?.id} />,
+      });
     }
+  }
+
+  return (
+    <>
+      {/* <RenderView viewIndex={currentViewIndex} /> */}
+      <Tabs
+        tabBarStyle={{ paddingLeft: 0, marginLeft: 0 }}
+        defaultActiveKey="1"
+        items={items}
+      />
+    </>
+  );
+};
+
+export const SkillsView = ({ id }: { id: string | null | undefined }) => {
+  return <div> Skills </div>;
+};
+
+export const ModelSelector = ({}: {}) => {
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [models, setModels] = useState<IModelConfig[]>([]);
+  const serverUrl = getServerUrl();
+
+  const { user } = React.useContext(appContext);
+  const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
+
+  const fetchModels = () => {
+    setError(null);
+    setLoading(true);
+    const payLoad = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        // message.success(data.message);
+        setModels(data.data);
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(listModelsUrl, payLoad, onSuccess, onError);
   };
 
   useEffect(() => {
-    console.log("view status changefd", viewStatus);
-  }, [viewStatus]);
+    fetchModels();
+  }, []);
 
-  const [currentViewIndex, setCurrentViewIndex] = React.useState<number>(0);
-  return (
-    <>
-      <RenderView viewIndex={currentViewIndex} />
-    </>
+  const modelItems: MenuProps["items"] =
+    models.length > 0
+      ? models.map((model: IModelConfig, index: number) => ({
+          key: index,
+          label: (
+            <>
+              <div>{model.model}</div>
+              <div className="text-xs text-accent">
+                {truncateText(model.description || "", 20)}
+              </div>
+            </>
+          ),
+          value: index,
+        }))
+      : [
+          {
+            key: -1,
+            label: <>No models found</>,
+            value: 0,
+          },
+        ];
+
+  const modelOnClick: MenuProps["onClick"] = ({ key }) => {
+    const selectedIndex = parseInt(key.toString());
+    let selectedModel = models[selectedIndex];
+    const updatedModels = [...models, selectedModel];
+    setModels(updatedModels);
+  };
+
+  const menuStyle: React.CSSProperties = {
+    boxShadow: "none",
+  };
+
+  const { token } = useToken();
+  const contentStyle: React.CSSProperties = {
+    backgroundColor: token.colorBgElevated,
+    borderRadius: token.borderRadiusLG,
+    boxShadow: token.boxShadowSecondary,
+  };
+
+  const addModelsMessage = (
+    <span className="text-xs">
+      {" "}
+      <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1" /> Please
+      create models in the Model tab
+    </span>
   );
 
-  // return (
-  // <>
-  //   <div className="text-accent ">{title}</div>
-  //   <GroupView
-  //     title=<div className="px-2">{flowSpec?.config?.name}</div>
-  //     className="mb-4 bg-primary  "
-  //   >
-  //     <ControlRowView
-  //       title="Agent Name"
-  //       className="mt-4"
-  //       description="Name of the agent"
-  //       value={flowSpec?.config?.name}
-  //       control={
-  //         <>
-  //           <Input
-  //             className="mt-2"
-  //             placeholder="Agent Name"
-  //             value={flowSpec?.config?.name}
-  //             onChange={(e) => {
-  //               onControlChange(e.target.value, "name");
-  //             }}
-  //           />
-  //           {!nameValidation.status && (
-  //             <div className="text-xs text-red-500 mt-2">
-  //               {nameValidation.message}
-  //             </div>
-  //           )}
-  //         </>
-  //       }
-  //     />
+  const AddModelsDropDown = () => {
+    return (
+      <Dropdown
+        menu={{ items: modelItems, onClick: modelOnClick }}
+        placement="bottomRight"
+        trigger={["click"]}
+        dropdownRender={(menu) => (
+          <div style={contentStyle}>
+            {React.cloneElement(menu as React.ReactElement, {
+              style: menuStyle,
+            })}
+            {models.length === 0 && (
+              <>
+                <Divider style={{ margin: 0 }} />
+                <Space style={{ padding: 8 }}></Space>
+                <div className="p-3">{addModelsMessage}</div>
+              </>
+            )}
+          </div>
+        )}
+      >
+        <div
+          className="inline-flex mr-1 mb-1 p-1 px-2 rounded border hover:border-accent duration-300 hover:text-accent"
+          role="button"
+        >
+          add <PlusIcon className="w-4 h-4 inline-block mt-1" />
+        </div>
+      </Dropdown>
+    );
+  };
 
-  //     <ControlRowView
-  //       title="Agent Description"
-  //       className="mt-4"
-  //       description="Description of the agent, used by other agents
-  //         (e.g. the GroupChatManager) to decide when to call upon this agent. (Default: system_message)"
-  //       value={flowSpec.config.description || ""}
-  //       control={
-  //         <Input
-  //           className="mt-2"
-  //           placeholder="Agent Description"
-  //           value={flowSpec.config.description || ""}
-  //           onChange={(e) => {
-  //             onControlChange(e.target.value, "description");
-  //           }}
-  //         />
-  //       }
-  //     />
+  const handleRemoveModel = (index: number) => {
+    // const updatedModels = models.filter((model, i) => i !== index);
+    // setModels(updatedModels);
+    console.log("remove model", index);
+  };
 
-  //     <ControlRowView
-  //       title="Max Consecutive Auto Reply"
-  //       className="mt-4"
-  //       description="Max consecutive auto reply messages before termination."
-  //       value={flowSpec.config?.max_consecutive_auto_reply}
-  //       control={
-  //         <Slider
-  //           min={1}
-  //           max={flowSpec.type === "groupchat" ? 600 : 30}
-  //           defaultValue={flowSpec.config.max_consecutive_auto_reply}
-  //           step={1}
-  //           onChange={(value: any) => {
-  //             onControlChange(value, "max_consecutive_auto_reply");
-  //           }}
-  //         />
-  //       }
-  //     />
+  const modelButtons = models.map((model, i) => {
+    const tooltipText = (
+      <>
+        <div>{model.model}</div>
+        {model.base_url && <div>{model.base_url}</div>}
+        {model.api_key && <div>{obscureString(model.api_key, 3)}</div>}
+        <div className="text-xs text-accent">
+          {truncateText(model.description || "", 90)}
+        </div>
+      </>
+    );
+    return (
+      <div
+        key={"modelrow_" + i}
+        // role="button"
+        className="mr-1 mb-1 p-1 px-2 rounded border"
+        // onClick={() => showModal(config, i)}
+      >
+        <div className="inline-flex">
+          {" "}
+          <Tooltip title={tooltipText}>
+            <div>{model.model}</div>{" "}
+          </Tooltip>
+          <div
+            role="button"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent opening the modal to edit
+              handleRemoveModel(i);
+            }}
+            className="ml-1 text-primary hover:text-accent duration-300"
+          >
+            <XMarkIcon className="w-4 h-4 inline-block" />
+          </div>
+        </div>
+      </div>
+    );
+  });
 
-  //     <ControlRowView
-  //       title="Agent Default Auto Reply"
-  //       className="mt-4"
-  //       description="Default auto reply when no code execution or llm-based reply is generated."
-  //       value={flowSpec.config.default_auto_reply || ""}
-  //       control={
-  //         <Input
-  //           className="mt-2"
-  //           placeholder="Agent Description"
-  //           value={flowSpec.config.default_auto_reply || ""}
-  //           onChange={(e) => {
-  //             onControlChange(e.target.value, "default_auto_reply");
-  //           }}
-  //         />
-  //       }
-  //     />
+  return (
+    <div className={""}>
+      <div className="flex flex-wrap">
+        {modelButtons}
+        <AddModelsDropDown />
+      </div>
+    </div>
+  );
+};
 
-  //     <ControlRowView
-  //       title="Human Input Mode"
-  //       description="Defines when to request human input"
-  //       value={flowSpec.config.human_input_mode}
-  //       control={
-  //         <Select
-  //           className="mt-2 w-full"
-  //           defaultValue={flowSpec.config.human_input_mode}
-  //           onChange={(value: any) => {
-  //             onControlChange(value, "human_input_mode");
-  //           }}
-  //           options={
-  //             [
-  //               { label: "NEVER", value: "NEVER" },
-  //               // { label: "TERMINATE", value: "TERMINATE" },
-  //               // { label: "ALWAYS", value: "ALWAYS" },
-  //             ] as any
-  //           }
-  //         />
-  //       }
-  //     />
-
-  //     {llm_config && llm_config.config_list.length > 0 && (
-  //       <ControlRowView
-  //         title="System Message"
-  //         className="mt-4"
-  //         description="Free text to control agent behavior"
-  //         value={flowSpec.config.system_message}
-  //         control={
-  //           <TextArea
-  //             className="mt-2 w-full"
-  //             value={flowSpec.config.system_message}
-  //             rows={3}
-  //             onChange={(e) => {
-  //               onControlChange(e.target.value, "system_message");
-  //             }}
-  //           />
-  //         }
-  //       />
-  //     )}
-  //   </GroupView>
-  // </>
-  //   <></>
-  // );
+export const ModelsView = ({ id }: { id: string | null | undefined }) => {
+  return (
+    <div>
+      {" "}
+      Models
+      <div>
+        <ModelSelector />
+      </div>
+    </div>
+  );
 };

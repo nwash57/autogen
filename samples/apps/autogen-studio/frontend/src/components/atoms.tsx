@@ -638,15 +638,6 @@ export const ModelSelector = ({
   const { user } = React.useContext(appContext);
   const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
 
-  // const sanitizeModelConfig = (config: IModelConfig) => {
-  //   const sanitizedConfig: IModelConfig = { model: config.model };
-  //   if (config.api_key) sanitizedConfig.api_key = config.api_key;
-  //   if (config.base_url) sanitizedConfig.base_url = config.base_url;
-  //   if (config.api_type) sanitizedConfig.api_type = config.api_type;
-  //   if (config.api_version) sanitizedConfig.api_version = config.api_version;
-  //   return sanitizedConfig;
-  // };
-
   const handleRemoveConfig = (index: number) => {
     const updatedConfigs = configs.filter((_, i) => i !== index);
 
