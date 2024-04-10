@@ -1,7 +1,16 @@
 from sqlmodel import SQLModel, Session, create_engine, select, and_
 from datetime import datetime
 import logging
-from .db import Agent, AgentModelLink, DBResponseModel, Model, Skill, Workflow
+from .db import (
+    Agent,
+    AgentModelLink,
+    AgentSkillLink,
+    DBResponseModel,
+    Model,
+    Skill,
+    Workflow,
+    WorkflowAgentLink,
+)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -213,13 +222,55 @@ class DBManager:
                         status = False
                         status_message = "One or both entity records do not exist."
                     else:
-                        primary_model.skills.append(secondary_model)
+                        # check if the link already exists
+                        existing_link = self.session.exec(
+                            select(AgentSkillLink).where(
+                                AgentSkillLink.agent_id == primary_id,
+                                AgentSkillLink.skill_id == secondary_id,
+                            )
+                        ).first()
+                        if existing_link:
+                            return DBResponseModel(
+                                message=(
+                                    f"{secondary_model.__class__.__name__} already linked "
+                                    f"to {primary_model.__class__.__name__}"
+                                ),
+                                status=True,
+                            )
+                elif link_type == "workflow_agent":
+                    primary_model = self.session.exec(
+                        select(Workflow).where(Workflow.id == primary_id)
+                    ).first()
+                    secondary_model = self.session.exec(
+                        select(Agent).where(Agent.id == secondary_id)
+                    ).first()
+                    if primary_model is None or secondary_model is None:
+                        status = False
+                        status_message = "One or both entity records do not exist."
+                    else:
+                        # check if the link already exists
+                        existing_link = self.session.exec(
+                            select(WorkflowAgentLink).where(
+                                WorkflowAgentLink.workflow_id == primary_id,
+                                WorkflowAgentLink.agent_id == secondary_id,
+                            )
+                        ).first()
+                        if existing_link:
+                            return DBResponseModel(
+                                message=(
+                                    f"{secondary_model.__class__.__name__} already linked "
+                                    f"to {primary_model.__class__.__name__}"
+                                ),
+                                status=True,
+                            )
+                # add and commit the link
                 self.session.add(primary_model)
                 self.session.commit()
                 status_message = (
-                    f"{secondary_model.__class__.__name__} linked "
+                    f"{secondary_model.__class__.__name__} successfully linked "
                     f"to {primary_model.__class__.__name__}"
                 )
+
             except Exception as e:
                 self.session.rollback()
                 logger.error("Error while linking: %s", e)
@@ -232,3 +283,64 @@ class DBManager:
         )
 
         return response
+
+    def unlink(
+        self, link_type: str, primary_id: int, secondary_id: int
+    ) -> DBResponseModel:
+        """
+        Unlink two entities.
+
+        Args:
+            link_type (str): The type of link to remove, e.g., "agent_model".
+            primary_id (int): The identifier for the primary model.
+            secondary_id (int): The identifier for the secondary model.
+
+        Returns:
+            DBResponseModel: The response of the unlinking operation, including success status and message.
+        """
+        status = True
+        status_message = ""
+
+        if link_type not in valid_link_types:
+            status = False
+            status_message = f"Invalid link type: {link_type}. Valid link types are: {valid_link_types}"
+            return DBResponseModel(message=status_message, status=status)
+
+        try:
+            if link_type == "agent_model":
+                existing_link = self.session.exec(
+                    select(AgentModelLink).where(
+                        AgentModelLink.agent_id == primary_id,
+                        AgentModelLink.model_id == secondary_id,
+                    )
+                ).first()
+            elif link_type == "agent_skill":
+                existing_link = self.session.exec(
+                    select(AgentSkillLink).where(
+                        AgentSkillLink.agent_id == primary_id,
+                        AgentSkillLink.skill_id == secondary_id,
+                    )
+                ).first()
+            elif link_type == "workflow_agent":
+                existing_link = self.session.exec(
+                    select(WorkflowAgentLink).where(
+                        WorkflowAgentLink.workflow_id == primary_id,
+                        WorkflowAgentLink.agent_id == secondary_id,
+                    )
+                ).first()
+
+            if existing_link:
+                self.session.delete(existing_link)
+                self.session.commit()
+                status_message = "Link removed successfully."
+            else:
+                status = False
+                status_message = "Link does not exist."
+
+        except Exception as e:
+            self.session.rollback()
+            logger.error("Error while unlinking: %s", e)
+            status = False
+            status_message = f"Error while unlinking due to an exception: {e}"
+
+        return DBResponseModel(message=status_message, status=status)

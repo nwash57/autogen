@@ -44,7 +44,7 @@ export interface IAgentConfig {
 }
 
 export interface IAgentFlowSpec {
-  type: "assistant" | "userproxy" | "groupchat";
+  type?: "assistant" | "userproxy" | "groupchat";
   config: IAgentConfig;
   created_at?: string;
   updated_at?: string;
@@ -66,7 +66,7 @@ export interface IGroupChatFlowSpec {
   type: "groupchat";
   config: IAgentConfig;
   groupchat_config: IGroupChatConfig;
-  id?: string;
+  id?: number;
   created_at?: string;
   updated_at?: string;
   user_id?: string;
@@ -96,7 +96,7 @@ export interface IModelConfig {
   created_at?: string;
   updated_at?: string;
   description?: string;
-  id?: string;
+  id?: number;
 }
 
 export interface IMetadataFile {

@@ -47,7 +47,26 @@ const AgentsView = ({}: any) => {
 
   const [showAgentModal, setShowAgentModal] = React.useState(false);
 
-  const sampleAgent = sampleAgentConfig();
+  // export interface IAgentConfig {
+  //   name: string;
+  //   llm_config?: ILLMConfig | false;
+  //   human_input_mode: string;
+  //   max_consecutive_auto_reply: number;
+  //   system_message: string | "";
+  //   is_termination_msg?: boolean | string;
+  //   default_auto_reply?: string | null;
+  //   code_execution_config?: boolean | string | { [key: string]: any } | null;
+  //   description?: string;
+  // }
+  const sampleAgent = {
+    config: {
+      name: "sample_agent",
+      description: "Sample agent description",
+      human_input_mode: "NEVER",
+      max_consecutive_auto_reply: 3,
+      system_message: "",
+    },
+  };
   const [newAgent, setNewAgent] = React.useState<IAgentFlowSpec | null>(
     sampleAgent
   );

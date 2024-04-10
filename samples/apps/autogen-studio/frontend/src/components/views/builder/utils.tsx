@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { IAgentFlowSpec, ILLMConfig, IModelConfig, ISkill } from "../../types";
+import {
+  IAgentFlowSpec,
+  IGroupChatFlowSpec,
+  ILLMConfig,
+  IModelConfig,
+  ISkill,
+} from "../../types";
 import { GroupView, ControlRowView, SkillSelector, Card } from "../../atoms";
 import {
   checkAndSanitizeInput,
@@ -30,6 +36,7 @@ import {
   CodeBracketSquareIcon,
   CpuChipIcon,
   ExclamationTriangleIcon,
+  InformationCircleIcon,
   PlusIcon,
   RectangleGroupIcon,
   Square2StackIcon,
@@ -41,14 +48,15 @@ import { Agent } from "undici-types";
 import { set } from "js-cookie";
 import { appContext } from "../../../hooks/provider";
 import Modal from "antd/es/modal/Modal";
+import { link } from "fs";
 
 const { useToken } = theme;
 const AgentTypeSelector = ({
   agent,
   setAgent,
 }: {
-  agent: IAgentFlowSpec | null;
-  setAgent: (newAgent: IAgentFlowSpec) => void;
+  agent: IAgentFlowSpec | IGroupChatFlowSpec | null;
+  setAgent: (newAgent: IAgentFlowSpec | IGroupChatFlowSpec) => void;
 }) => {
   const iconClass = "h-6 w-6 inline-block ";
   const agentTypes = [
@@ -85,7 +93,8 @@ const AgentTypeSelector = ({
           onClick={() => {
             setSelectedAgentType(agentType.value);
             if (agent) {
-              setAgent({ ...agent, type: agentType.value });
+              const sampleAgent = sampleAgentConfig(agentType.value);
+              setAgent(sampleAgent);
             }
           }}
         >
@@ -114,16 +123,15 @@ const AgentMainView = ({
   agent,
   setAgent,
 }: {
-  agent: IAgentFlowSpec | null;
-  setAgent: (newAgent: IAgentFlowSpec) => void;
+  agent: IAgentFlowSpec | IGroupChatFlowSpec | null;
+  setAgent: (newAgent: IAgentFlowSpec | IGroupChatFlowSpec) => void;
 }) => {
   return (
     <div>
       {!agent?.type && <AgentTypeSelector agent={agent} setAgent={setAgent} />}
-      {agent?.type !== null && agent && (
+      {agent?.type && agent && (
         <AgentConfigView flowSpec={agent} setFlowSpec={setAgent} />
       )}
-      <div>flowspec id {agent?.id}</div>
     </div>
   );
 };
@@ -132,8 +140,8 @@ const AgentConfigView = ({
   flowSpec,
   setFlowSpec,
 }: {
-  flowSpec: IAgentFlowSpec;
-  setFlowSpec: (newFlowSpec: IAgentFlowSpec) => void;
+  flowSpec: IAgentFlowSpec | IGroupChatFlowSpec;
+  setFlowSpec: (newFlowSpec: IAgentFlowSpec | IGroupChatFlowSpec) => void;
 }) => {
   const nameValidation = checkAndSanitizeInput(flowSpec?.config?.name);
   const [error, setError] = React.useState<any>(null);
@@ -156,7 +164,7 @@ const AgentConfigView = ({
     setFlowSpec(updatedFlowSpec);
   };
 
-  const createAgent = (agent: IAgentFlowSpec) => {
+  const createAgent = (agent: IAgentFlowSpec | IGroupChatFlowSpec) => {
     setError(null);
     setLoading(true);
     // const fetch;
@@ -310,6 +318,7 @@ const AgentConfigView = ({
           onClick={() => {
             createAgent(flowSpec);
           }}
+          loading={loading}
         >
           {flowSpec.id ? "Update Agent" : "Create Agent"}
         </Button>
@@ -322,8 +331,8 @@ export const AgentFlowSpecView = ({
   agent,
   setAgent,
 }: {
-  agent: IAgentFlowSpec | null;
-  setAgent: (newAgent: IAgentFlowSpec) => void;
+  agent: IAgentFlowSpec | IGroupChatFlowSpec | null;
+  setAgent: (newAgent: IAgentFlowSpec | IGroupChatFlowSpec) => void;
 }) => {
   let items = [
     {
@@ -350,7 +359,7 @@ export const AgentFlowSpecView = ({
           </div>
         ),
         key: "2",
-        children: <ModelsView id={agent?.id} />,
+        children: <ModelsView agentId={agent?.id} />,
       });
 
       items.push({
@@ -361,7 +370,7 @@ export const AgentFlowSpecView = ({
           </>
         ),
         key: "3",
-        children: <SkillsView id={agent?.id} />,
+        children: <SkillsView agentId={agent?.id} />,
       });
     }
   }
@@ -378,19 +387,20 @@ export const AgentFlowSpecView = ({
   );
 };
 
-export const SkillsView = ({ id }: { id: number }) => {
+export const SkillsView = ({ agentId }: { agentId: number }) => {
   return <div> Skills </div>;
 };
 
-export const ModelSelector = ({ id }: { id: number }) => {
+export const ModelSelector = ({ agentId }: { agentId: number }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [models, setModels] = useState<IModelConfig[]>([]);
+  const [agentModels, setAgentModels] = useState<IModelConfig[]>([]);
   const serverUrl = getServerUrl();
 
   const { user } = React.useContext(appContext);
-  // const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
-  const listModelsUrl = `${serverUrl}/agents/link/model/${id}`;
+  const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
+  const listAgentModelsUrl = `${serverUrl}/agents/link/model/${agentId}`;
 
   const fetchModels = () => {
     setError(null);
@@ -419,8 +429,92 @@ export const ModelSelector = ({ id }: { id: number }) => {
     fetchJSON(listModelsUrl, payLoad, onSuccess, onError);
   };
 
+  const fetchAgentModels = () => {
+    setError(null);
+    setLoading(true);
+    const payLoad = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        // message.success(data.message);
+        setAgentModels(data.data);
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(listAgentModelsUrl, payLoad, onSuccess, onError);
+  };
+
+  const linkAgentModel = (agentId: number, modelId: number) => {
+    setError(null);
+    setLoading(true);
+    const payLoad = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    const linkModelUrl = `${serverUrl}/agents/link/model/${agentId}/${modelId}`;
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        message.success(data.message);
+        console.log("linked model", data);
+        fetchAgentModels();
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(linkModelUrl, payLoad, onSuccess, onError);
+  };
+
+  const unLinkAgentModel = (agentId: number, modelId: number) => {
+    setError(null);
+    setLoading(true);
+    const payLoad = {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    const linkModelUrl = `${serverUrl}/agents/link/model/${agentId}/${modelId}`;
+    const onSuccess = (data: any) => {
+      if (data && data.status) {
+        message.success(data.message);
+        console.log("unlinked model", data);
+        fetchAgentModels();
+      } else {
+        message.error(data.message);
+      }
+      setLoading(false);
+    };
+    const onError = (err: any) => {
+      setError(err);
+      message.error(err.message);
+      setLoading(false);
+    };
+    fetchJSON(linkModelUrl, payLoad, onSuccess, onError);
+  };
+
   useEffect(() => {
     fetchModels();
+    fetchAgentModels();
   }, []);
 
   const modelItems: MenuProps["items"] =
@@ -448,8 +542,11 @@ export const ModelSelector = ({ id }: { id: number }) => {
   const modelOnClick: MenuProps["onClick"] = ({ key }) => {
     const selectedIndex = parseInt(key.toString());
     let selectedModel = models[selectedIndex];
-    const updatedModels = [...models, selectedModel];
-    setModels(updatedModels);
+
+    console.log("selected model", selectedModel);
+    if (selectedModel && selectedModel.id) {
+      linkAgentModel(agentId, selectedModel.id);
+    }
   };
 
   const menuStyle: React.CSSProperties = {
@@ -503,12 +600,13 @@ export const ModelSelector = ({ id }: { id: number }) => {
   };
 
   const handleRemoveModel = (index: number) => {
-    // const updatedModels = models.filter((model, i) => i !== index);
-    // setModels(updatedModels);
-    console.log("remove model", index);
+    const model = agentModels[index];
+    if (model && model.id) {
+      unLinkAgentModel(agentId, model.id);
+    }
   };
 
-  const modelButtons = models.map((model, i) => {
+  const agentModelButtons = agentModels.map((model, i) => {
     const tooltipText = (
       <>
         <div>{model.model}</div>
@@ -548,29 +646,38 @@ export const ModelSelector = ({ id }: { id: number }) => {
 
   return (
     <div className={""}>
-      {models && models.length > 0 && (
+      {agentModels && agentModels.length > 0 && (
         <>
-          <div>
+          <div className="mb-2">
             {" "}
-            <span className="text-accent">{models.length}</span> Models linked
-            to this agent{" "}
-          </div>
-          <div className="flex flex-wrap">
-            {modelButtons}
-            <AddModelsDropDown />
+            <span className="text-accent">{agentModels.length}</span> Models
+            linked to this agent{" "}
           </div>
         </>
       )}
+
+      {(!agentModels || agentModels.length == 0) && (
+        <div className="text-sm border  rounded text-secondary p-2 my-2">
+          <InformationCircleIcon className="h-4 w-4 inline mr-1" />
+          No models currently linked to this agent. Please add a model using the
+          button below.
+        </div>
+      )}
+
+      <div className="flex flex-wrap">
+        {agentModelButtons}
+        <AddModelsDropDown />
+      </div>
     </div>
   );
 };
 
-export const ModelsView = ({ id }: { id: number }) => {
+export const ModelsView = ({ agentId }: { agentId: number }) => {
   return (
     <div>
       {" "}
       <div>
-        <ModelSelector id={id} />
+        <ModelSelector agentId={agentId} />
       </div>
     </div>
   );

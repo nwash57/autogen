@@ -264,6 +264,14 @@ async def link_agent_model(agent_id: int, model_id: int):
     )
 
 
+@api.delete("/agents/link/model/{agent_id}/{model_id}")
+async def unlink_agent_model(agent_id: int, model_id: int):
+    """Unlink a model from an agent"""
+    return dbmanager.unlink(
+        link_type="agent_model", primary_id=agent_id, secondary_id=model_id
+    )
+
+
 @api.get("/agents/link/model/{agent_id}")
 async def get_agent_models(agent_id: int):
     """Get all models linked to an agent"""
@@ -274,6 +282,14 @@ async def get_agent_models(agent_id: int):
 async def link_agent_skill(agent_id: int, skill_id: int):
     """Link an a skill to an agent"""
     return dbmanager.link(
+        link_type="agent_skill", primary_id=agent_id, secondary_id=skill_id
+    )
+
+
+@api.delete("/agents/link/skill/{agent_id}/{skill_id}")
+async def unlink_agent_skill(agent_id: int, skill_id: int):
+    """Unlink an a skill from an agent"""
+    return dbmanager.unlink(
         link_type="agent_skill", primary_id=agent_id, secondary_id=skill_id
     )
 
