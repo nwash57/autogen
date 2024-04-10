@@ -48,7 +48,7 @@ export interface IAgentFlowSpec {
   config: IAgentConfig;
   created_at?: string;
   updated_at?: string;
-  id?: string;
+  id?: number;
   skills?: Array<ISkill>;
   user_id?: string;
 }

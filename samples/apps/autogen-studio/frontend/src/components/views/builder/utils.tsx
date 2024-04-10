@@ -119,7 +119,7 @@ const AgentMainView = ({
 }) => {
   return (
     <div>
-      {agent?.type && <AgentTypeSelector agent={agent} setAgent={setAgent} />}
+      {!agent?.type && <AgentTypeSelector agent={agent} setAgent={setAgent} />}
       {agent?.type !== null && agent && (
         <AgentConfigView flowSpec={agent} setFlowSpec={setAgent} />
       )}
@@ -311,7 +311,7 @@ const AgentConfigView = ({
             createAgent(flowSpec);
           }}
         >
-          Create Agent
+          {flowSpec.id ? "Update Agent" : "Create Agent"}
         </Button>
       </div>
     </>
@@ -331,7 +331,7 @@ export const AgentFlowSpecView = ({
         <div className="w-full  ">
           {" "}
           <BugAntIcon className="h-4 w-4 inline-block mr-1" />
-          Configuration
+          Agent Configuration
         </div>
       ),
       key: "1",
@@ -378,18 +378,19 @@ export const AgentFlowSpecView = ({
   );
 };
 
-export const SkillsView = ({ id }: { id: string | null | undefined }) => {
+export const SkillsView = ({ id }: { id: number }) => {
   return <div> Skills </div>;
 };
 
-export const ModelSelector = ({}: {}) => {
+export const ModelSelector = ({ id }: { id: number }) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [models, setModels] = useState<IModelConfig[]>([]);
   const serverUrl = getServerUrl();
 
   const { user } = React.useContext(appContext);
-  const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
+  // const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
+  const listModelsUrl = `${serverUrl}/agents/link/model/${id}`;
 
   const fetchModels = () => {
     setError(null);
@@ -547,21 +548,29 @@ export const ModelSelector = ({}: {}) => {
 
   return (
     <div className={""}>
-      <div className="flex flex-wrap">
-        {modelButtons}
-        <AddModelsDropDown />
-      </div>
+      {models && models.length > 0 && (
+        <>
+          <div>
+            {" "}
+            <span className="text-accent">{models.length}</span> Models linked
+            to this agent{" "}
+          </div>
+          <div className="flex flex-wrap">
+            {modelButtons}
+            <AddModelsDropDown />
+          </div>
+        </>
+      )}
     </div>
   );
 };
 
-export const ModelsView = ({ id }: { id: string | null | undefined }) => {
+export const ModelsView = ({ id }: { id: number }) => {
   return (
     <div>
       {" "}
-      Models
       <div>
-        <ModelSelector />
+        <ModelSelector id={id} />
       </div>
     </div>
   );

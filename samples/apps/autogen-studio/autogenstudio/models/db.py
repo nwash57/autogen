@@ -13,6 +13,9 @@ from sqlmodel import (
 from datetime import datetime
 from sqlalchemy import orm
 
+SQLModel.model_config["protected_namespaces"] = ()
+# pylint: disable=protected-access
+
 
 class Message(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -56,7 +59,7 @@ class AgentSkillLink(SQLModel, table=True):
 
 class AgentModelLink(SQLModel, table=True):
     agent_id: int = Field(default=None, primary_key=True, foreign_key="agent.id")
-    modele_id: int = Field(default=None, primary_key=True, foreign_key="model.id")
+    model_id: int = Field(default=None, primary_key=True, foreign_key="model.id")
 
 
 class Skill(SQLModel, table=True):
@@ -133,7 +136,7 @@ class AgentType(str, Enum):
     groupchat = "groupchat"
 
 
-class WorkflowAgentTypes(str, Enum):
+class WorkflowAgentType(str, Enum):
     sender = "sender"
     receiver = "receiver"
     planner = "planner"
@@ -142,8 +145,8 @@ class WorkflowAgentTypes(str, Enum):
 class WorkflowAgentLink(SQLModel, table=True):
     workflow_id: int = Field(default=None, primary_key=True, foreign_key="workflow.id")
     agent_id: int = Field(default=None, primary_key=True, foreign_key="agent.id")
-    link_type: WorkflowAgentTypes = Field(
-        default=WorkflowAgentTypes.sender, sa_column=Column(SqlEnum(WorkflowAgentTypes))
+    link_type: WorkflowAgentType = Field(
+        default=WorkflowAgentType.sender, sa_column=Column(SqlEnum(WorkflowAgentType))
     )
 
 
@@ -212,4 +215,4 @@ class Workflow(SQLModel, table=True):
 class DBResponseModel(SQLModel):
     message: str
     status: bool
-    data: Any
+    data: Optional[Any] = None

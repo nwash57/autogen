@@ -269,9 +269,8 @@ const AgentsView = ({}: any) => {
       >
         {agent && (
           <AgentFlowSpecView
-            title=""
-            flowSpec={localAgent || agent}
-            setFlowSpec={setLocalAgent}
+            agent={localAgent || agent}
+            setAgent={setLocalAgent}
           />
         )}
         {/* {JSON.stringify(localAgent)} */}

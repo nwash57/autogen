@@ -31,7 +31,7 @@ const ModelsView = ({}: any) => {
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const listModelsUrl = `${serverUrl}/models?user_id=${user?.email}`;
-  const saveModelsUrl = `${serverUrl}/models`;
+  const createModelUrl = `${serverUrl}/models`;
   const testModelUrl = `${serverUrl}/models/test`;
 
   const defaultModel: IModelConfig = {
@@ -106,7 +106,7 @@ const ModelsView = ({}: any) => {
     fetchJSON(listModelsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveModel = (model: IModelConfig) => {
+  const createModel = (model: IModelConfig) => {
     setError(null);
     setLoading(true);
     model.user_id = user?.email;
@@ -123,8 +123,8 @@ const ModelsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        // console.log("models", data.data);
-        setModels(data.data);
+        const updatedModels = [data.data].concat(models || []);
+        setModels(updatedModels);
       } else {
         message.error(data.message);
       }
@@ -135,7 +135,7 @@ const ModelsView = ({}: any) => {
       message.error(err.message);
       setLoading(false);
     };
-    fetchJSON(saveModelsUrl, payLoad, onSuccess, onError);
+    fetchJSON(createModelUrl, payLoad, onSuccess, onError);
   };
 
   React.useEffect(() => {
@@ -467,7 +467,7 @@ const ModelsView = ({}: any) => {
         showModelModal={showModelModal}
         handler={(model: IModelConfig | null) => {
           if (model) {
-            saveModel(model);
+            createModel(model);
           }
         }}
       />
@@ -479,7 +479,7 @@ const ModelsView = ({}: any) => {
         showModelModal={showNewModelModal}
         handler={(model: IModelConfig | null) => {
           if (model) {
-            saveModel(model);
+            createModel(model);
           }
         }}
       />
