@@ -300,6 +300,32 @@ async def get_agent_skills(agent_id: int):
     return dbmanager.get_linked_entities("agent_skill", agent_id, return_json=True)
 
 
+@api.post("/agents/link/agent/{primary_agent_id}/{secondary_agent_id}")
+async def link_agent_agent(primary_agent_id: int, secondary_agent_id: int):
+    """Link an agent to another agent"""
+    return dbmanager.link(
+        link_type="agent_agent",
+        primary_id=primary_agent_id,
+        secondary_id=secondary_agent_id,
+    )
+
+
+@api.delete("/agents/link/agent/{primary_agent_id}/{secondary_agent_id}")
+async def unlink_agent_agent(primary_agent_id: int, secondary_agent_id: int):
+    """Unlink an agent from another agent"""
+    return dbmanager.unlink(
+        link_type="agent_agent",
+        primary_id=primary_agent_id,
+        secondary_id=secondary_agent_id,
+    )
+
+
+@api.get("/agents/link/agent/{agent_id}")
+async def get_linked_agents(agent_id: int):
+    """Get all agents linked to an agent"""
+    return dbmanager.get_linked_entities("agent_agent", agent_id, return_json=True)
+
+
 @api.get("/workflows")
 async def list_workflows(user_id: str):
     """List all workflows for a user"""

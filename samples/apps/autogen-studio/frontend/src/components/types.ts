@@ -43,7 +43,7 @@ export interface IAgentConfig {
   description?: string;
 }
 
-export interface IAgentFlowSpec {
+export interface IAgent {
   type?: "assistant" | "userproxy" | "groupchat";
   config: IAgentConfig;
   created_at?: string;
@@ -53,31 +53,11 @@ export interface IAgentFlowSpec {
   user_id?: string;
 }
 
-export interface IGroupChatConfig {
-  agents: Array<IAgentFlowSpec>;
-  admin_name: string;
-  messages: Array<any>;
-  max_round: number;
-  speaker_selection_method: "auto" | "round_robin" | "random";
-  allow_repeat_speaker: boolean | Array<IAgentConfig>;
-}
-
-export interface IGroupChatFlowSpec {
-  type: "groupchat";
-  config: IAgentConfig;
-  groupchat_config: IGroupChatConfig;
-  id?: number;
-  created_at?: string;
-  updated_at?: string;
-  user_id?: string;
-  description?: string;
-}
-
-export interface IFlowConfig {
+export interface IWorkflow {
   name: string;
   description: string;
-  sender: IAgentFlowSpec;
-  receiver: IAgentFlowSpec | IGroupChatFlowSpec;
+  sender: IAgent;
+  receiver: IAgent;
   type: "twoagents" | "groupchat";
   created_at?: string;
   updated_at?: string;
@@ -128,7 +108,7 @@ export interface IGalleryItem {
 export interface ISkill {
   name: string;
   content: string;
-  id?: string;
+  id?: number;
   description?: string;
   user_id?: string;
   created_at?: string;

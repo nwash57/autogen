@@ -150,6 +150,15 @@ class WorkflowAgentLink(SQLModel, table=True):
     )
 
 
+class AgentLink(SQLModel, table=True):
+    parent_id: Optional[int] = Field(
+        default=None, foreign_key="agent.id", primary_key=True
+    )
+    child_id: Optional[int] = Field(
+        default=None, foreign_key="agent.id", primary_key=True
+    )
+
+
 class Agent(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(
@@ -173,6 +182,22 @@ class Agent(SQLModel, table=True):
     )
     workflows: List["Workflow"] = Relationship(
         link_model=WorkflowAgentLink, back_populates="agents"
+    )
+    parents: List["Agent"] = Relationship(
+        back_populates="children",
+        link_model=AgentLink,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Agent.id==AgentLink.child_id",
+            secondaryjoin="Agent.id==AgentLink.parent_id",
+        ),
+    )
+    children: List["Agent"] = Relationship(
+        back_populates="parents",
+        link_model=AgentLink,
+        sa_relationship_kwargs=dict(
+            primaryjoin="Agent.id==AgentLink.parent_id",
+            secondaryjoin="Agent.id==AgentLink.child_id",
+        ),
     )
 
 

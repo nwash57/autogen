@@ -11,7 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Button, Dropdown, MenuProps, Modal, Tooltip, message } from "antd";
 import * as React from "react";
-import { IFlowConfig, IStatus } from "../../types";
+import { IWorkflow, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import {
   fetchJSON,
@@ -29,6 +29,7 @@ import {
   LaunchButton,
   LoadingOverlay,
 } from "../../atoms";
+import { WorflowViewer, WorkflowViewConfig } from "./utils/workflowconfig";
 
 const WorkflowView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -41,12 +42,12 @@ const WorkflowView = ({}: any) => {
   const listWorkflowsUrl = `${serverUrl}/workflows?user_id=${user?.email}`;
   const saveWorkflowsUrl = `${serverUrl}/workflows`;
 
-  const [workflows, setWorkflows] = React.useState<IFlowConfig[] | null>([]);
+  const [workflows, setWorkflows] = React.useState<IWorkflow[] | null>([]);
   const [selectedWorkflow, setSelectedWorkflow] =
-    React.useState<IFlowConfig | null>(null);
+    React.useState<IWorkflow | null>(null);
 
   const defaultConfig = sampleWorkflowConfig();
-  const [newWorkflow, setNewWorkflow] = React.useState<IFlowConfig | null>(
+  const [newWorkflow, setNewWorkflow] = React.useState<IWorkflow | null>(
     defaultConfig
   );
 
@@ -66,9 +67,8 @@ const WorkflowView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        // message.success(data.message);
-
         setWorkflows(data.data);
+        console.log("workflows", data.data);
       } else {
         message.error(data.message);
       }
@@ -82,7 +82,7 @@ const WorkflowView = ({}: any) => {
     fetchJSON(listWorkflowsUrl, payLoad, onSuccess, onError);
   };
 
-  const deleteWorkFlow = (workflow: IFlowConfig) => {
+  const deleteWorkFlow = (workflow: IWorkflow) => {
     setError(null);
     setLoading(true);
     // const fetch;
@@ -115,7 +115,7 @@ const WorkflowView = ({}: any) => {
     fetchJSON(deleteWorkflowsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveWorkFlow = (workflow: IFlowConfig) => {
+  const saveWorkFlow = (workflow: IWorkflow) => {
     setError(null);
     setLoading(true);
     // const fetch;
@@ -155,13 +155,21 @@ const WorkflowView = ({}: any) => {
   }, []);
 
   React.useEffect(() => {
+    console.log("showNewWorkflowModal", showNewWorkflowModal);
+    if (!showNewWorkflowModal) {
+      // refresh workflows when modal closed
+      fetchWorkFlow();
+    }
+  }, [showNewWorkflowModal]);
+
+  React.useEffect(() => {
     if (selectedWorkflow) {
       setShowWorkflowModal(true);
     }
   }, [selectedWorkflow]);
 
   const workflowRows = (workflows || []).map(
-    (workflow: IFlowConfig, i: number) => {
+    (workflow: IWorkflow, i: number) => {
       const cardItems = [
         {
           title: "Download",
@@ -248,14 +256,15 @@ const WorkflowView = ({}: any) => {
     setShowWorkflowModal,
     handler,
   }: {
-    workflow: IFlowConfig | null;
-    setWorkflow?: (workflow: IFlowConfig | null) => void;
+    workflow: IWorkflow | null;
+    setWorkflow?: (workflow: IWorkflow | null) => void;
     showWorkflowModal: boolean;
     setShowWorkflowModal: (show: boolean) => void;
-    handler?: (workflow: IFlowConfig) => void;
+    handler?: (workflow: IWorkflow) => void;
   }) => {
-    const [localWorkflow, setLocalWorkflow] =
-      React.useState<IFlowConfig | null>(workflow);
+    const [localWorkflow, setLocalWorkflow] = React.useState<IWorkflow | null>(
+      workflow
+    );
 
     return (
       <Modal
@@ -272,18 +281,19 @@ const WorkflowView = ({}: any) => {
         onOk={() => {
           setShowWorkflowModal(false);
           if (handler) {
-            handler(localWorkflow as IFlowConfig);
+            handler(localWorkflow as IWorkflow);
           }
         }}
         onCancel={() => {
           setShowWorkflowModal(false);
           setWorkflow?.(null);
         }}
+        footer={[]}
       >
         {localWorkflow && (
-          <FlowConfigViewer
-            flowConfig={localWorkflow}
-            setFlowConfig={setLocalWorkflow}
+          <WorflowViewer
+            workflow={localWorkflow}
+            setWorkflow={setLocalWorkflow}
           />
         )}
       </Modal>
@@ -349,7 +359,7 @@ const WorkflowView = ({}: any) => {
     },
   ];
 
-  const showWorkflow = (config: IFlowConfig) => {
+  const showWorkflow = (config: IWorkflow) => {
     setSelectedWorkflow(config);
     setShowWorkflowModal(true);
   };
@@ -369,7 +379,7 @@ const WorkflowView = ({}: any) => {
         setWorkflow={setSelectedWorkflow}
         showWorkflowModal={showWorkflowModal}
         setShowWorkflowModal={setShowWorkflowModal}
-        handler={(workflow: IFlowConfig) => {
+        handler={(workflow: IWorkflow) => {
           saveWorkFlow(workflow);
           setShowWorkflowModal(false);
         }}
@@ -379,7 +389,7 @@ const WorkflowView = ({}: any) => {
         workflow={newWorkflow}
         showWorkflowModal={showNewWorkflowModal}
         setShowWorkflowModal={setShowNewWorkflowModal}
-        handler={(workflow: IFlowConfig) => {
+        handler={(workflow: IWorkflow) => {
           saveWorkFlow(workflow);
           setShowNewWorkflowModal(false);
         }}

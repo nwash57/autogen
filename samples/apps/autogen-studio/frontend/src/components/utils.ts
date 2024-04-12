@@ -66,7 +66,8 @@ export function fetchJSON(
   url: string | URL,
   payload: any = {},
   onSuccess: (data: any) => void,
-  onError: (error: IStatus) => void
+  onError: (error: IStatus) => void,
+  onFinal: () => void = () => {}
 ) {
   return fetch(url, payload)
     .then(function (response) {
@@ -95,6 +96,9 @@ export function fetchJSON(
         status: false,
         message: `There was an error connecting to server. (${err}) `,
       });
+    })
+    .finally(() => {
+      onFinal();
     });
 }
 export const capitalize = (s: string) => {

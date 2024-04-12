@@ -126,8 +126,8 @@ const SkillsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        // console.log("skills", data.data);
-        setSkills(data.data);
+        const updatedSkills = [data.data].concat(skills || []);
+        setSkills(updatedSkills);
       } else {
         message.error(data.message);
       }

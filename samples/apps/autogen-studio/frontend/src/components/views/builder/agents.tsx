@@ -8,7 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
-import { IAgentFlowSpec, IStatus } from "../../types";
+import { IAgent, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
 import {
   fetchJSON,
@@ -25,7 +25,7 @@ import {
   LaunchButton,
   LoadingOverlay,
 } from "../../atoms";
-import { AgentFlowSpecView } from "./utils";
+import { AgentFlowSpecView } from "./utils/agentconfig";
 
 const AgentsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -39,25 +39,13 @@ const AgentsView = ({}: any) => {
   const listAgentsUrl = `${serverUrl}/agents?user_id=${user?.email}`;
   const saveAgentsUrl = `${serverUrl}/agents`;
 
-  const [agents, setAgents] = React.useState<IAgentFlowSpec[] | null>([]);
-  const [selectedAgent, setSelectedAgent] =
-    React.useState<IAgentFlowSpec | null>(null);
+  const [agents, setAgents] = React.useState<IAgent[] | null>([]);
+  const [selectedAgent, setSelectedAgent] = React.useState<IAgent | null>(null);
 
   const [showNewAgentModal, setShowNewAgentModal] = React.useState(false);
 
   const [showAgentModal, setShowAgentModal] = React.useState(false);
 
-  // export interface IAgentConfig {
-  //   name: string;
-  //   llm_config?: ILLMConfig | false;
-  //   human_input_mode: string;
-  //   max_consecutive_auto_reply: number;
-  //   system_message: string | "";
-  //   is_termination_msg?: boolean | string;
-  //   default_auto_reply?: string | null;
-  //   code_execution_config?: boolean | string | { [key: string]: any } | null;
-  //   description?: string;
-  // }
   const sampleAgent = {
     config: {
       name: "sample_agent",
@@ -67,11 +55,9 @@ const AgentsView = ({}: any) => {
       system_message: "",
     },
   };
-  const [newAgent, setNewAgent] = React.useState<IAgentFlowSpec | null>(
-    sampleAgent
-  );
+  const [newAgent, setNewAgent] = React.useState<IAgent | null>(sampleAgent);
 
-  const deleteAgent = (agent: IAgentFlowSpec) => {
+  const deleteAgent = (agent: IAgent) => {
     setError(null);
     setLoading(true);
 
@@ -134,7 +120,7 @@ const AgentsView = ({}: any) => {
     fetchJSON(listAgentsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveAgent = (agent: IAgentFlowSpec) => {
+  const saveAgent = (agent: IAgent) => {
     setError(null);
     setLoading(true);
     // const fetch;
@@ -178,7 +164,14 @@ const AgentsView = ({}: any) => {
     }
   }, []);
 
-  const agentRows = (agents || []).map((agent: IAgentFlowSpec, i: number) => {
+  React.useEffect(() => {
+    if (!showNewAgentModal) {
+      // refresh agents when modal closed
+      fetchAgents();
+    }
+  }, [showNewAgentModal]);
+
+  const agentRows = (agents || []).map((agent: IAgent, i: number) => {
     const cardItems = [
       {
         title: "Download",
@@ -210,7 +203,6 @@ const AgentsView = ({}: any) => {
           if (newAgent.id) {
             delete newAgent.id;
           }
-
           setNewAgent(newAgent);
           setShowNewAgentModal(true);
         },
@@ -258,15 +250,13 @@ const AgentsView = ({}: any) => {
     setShowAgentModal,
     handler,
   }: {
-    agent: IAgentFlowSpec | null;
-    setAgent: (agent: IAgentFlowSpec | null) => void;
+    agent: IAgent | null;
+    setAgent: (agent: IAgent | null) => void;
     showAgentModal: boolean;
     setShowAgentModal: (show: boolean) => void;
-    handler?: (agent: IAgentFlowSpec | null) => void;
+    handler?: (agent: IAgent | null) => void;
   }) => {
-    const [localAgent, setLocalAgent] = React.useState<IAgentFlowSpec | null>(
-      agent
-    );
+    const [localAgent, setLocalAgent] = React.useState<IAgent | null>(agent);
 
     return (
       <Modal
@@ -358,7 +348,7 @@ const AgentsView = ({}: any) => {
         setAgent={setSelectedAgent}
         setShowAgentModal={setShowAgentModal}
         showAgentModal={showAgentModal}
-        handler={(agent: IAgentFlowSpec | null) => {
+        handler={(agent: IAgent | null) => {
           if (agent) {
             saveAgent(agent);
           }
@@ -370,7 +360,7 @@ const AgentsView = ({}: any) => {
         setAgent={setNewAgent}
         setShowAgentModal={setShowNewAgentModal}
         showAgentModal={showNewAgentModal}
-        handler={(agent: IAgentFlowSpec | null) => {
+        handler={(agent: IAgent | null) => {
           if (agent) {
             saveAgent(agent);
           }

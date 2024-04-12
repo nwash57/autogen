@@ -3,6 +3,7 @@ from datetime import datetime
 import logging
 from .db import (
     Agent,
+    AgentLink,
     AgentModelLink,
     AgentSkillLink,
     DBResponseModel,
@@ -15,7 +16,7 @@ from .db import (
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-valid_link_types = ["agent_model", "agent_skill", "workflow_agent"]
+valid_link_types = ["agent_model", "agent_skill", "agent_agent", "workflow_agent"]
 
 
 class DBManager:
@@ -139,6 +140,9 @@ class DBManager:
             elif link_type == "agent_skill":
                 agent = self.get(Agent, filters={"id": primary_id})[0]
                 linked_entities = agent.skills
+            elif link_type == "agent_agent":
+                agent = self.get(Agent, filters={"id": primary_id})[0]
+                linked_entities = agent.children
             elif link_type == "workflow_agent":
                 workflow = self.get(Workflow, filters={"id": primary_id})[0]
                 linked_entities = workflow.agents
@@ -207,10 +211,39 @@ class DBManager:
                                     f"{secondary_model.__class__.__name__} already linked "
                                     f"to {primary_model.__class__.__name__}"
                                 ),
-                                status=True,
+                                status=False,
                             )
                         else:
                             primary_model.models.append(secondary_model)
+                elif link_type == "agent_agent":
+                    primary_model = self.session.exec(
+                        select(Agent).where(Agent.id == primary_id)
+                    ).first()
+                    secondary_model = self.session.exec(
+                        select(Agent).where(Agent.id == secondary_id)
+                    ).first()
+                    if primary_model is None or secondary_model is None:
+                        status = False
+                        status_message = "One or both entity records do not exist."
+                    else:
+                        # check if the link already exists
+                        existing_link = self.session.exec(
+                            select(AgentLink).where(
+                                AgentLink.parent_id == primary_id,
+                                AgentLink.child_id == secondary_id,
+                            )
+                        ).first()
+                        if existing_link:
+                            return DBResponseModel(
+                                message=(
+                                    f"{secondary_model.__class__.__name__} already linked "
+                                    f"to {primary_model.__class__.__name__}"
+                                ),
+                                status=False,
+                            )
+                        else:
+                            primary_model.children.append(secondary_model)
+
                 elif link_type == "agent_skill":
                     primary_model = self.session.exec(
                         select(Agent).where(Agent.id == primary_id)
@@ -235,8 +268,10 @@ class DBManager:
                                     f"{secondary_model.__class__.__name__} already linked "
                                     f"to {primary_model.__class__.__name__}"
                                 ),
-                                status=True,
+                                status=False,
                             )
+                        else:
+                            primary_model.skills.append(secondary_model)
                 elif link_type == "workflow_agent":
                     primary_model = self.session.exec(
                         select(Workflow).where(Workflow.id == primary_id)
@@ -261,8 +296,10 @@ class DBManager:
                                     f"{secondary_model.__class__.__name__} already linked "
                                     f"to {primary_model.__class__.__name__}"
                                 ),
-                                status=True,
+                                status=False,
                             )
+                        else:
+                            primary_model.agents.append(secondary_model)
                 # add and commit the link
                 self.session.add(primary_model)
                 self.session.commit()
@@ -319,6 +356,13 @@ class DBManager:
                     select(AgentSkillLink).where(
                         AgentSkillLink.agent_id == primary_id,
                         AgentSkillLink.skill_id == secondary_id,
+                    )
+                ).first()
+            elif link_type == "agent_agent":
+                existing_link = self.session.exec(
+                    select(AgentLink).where(
+                        AgentLink.parent_id == primary_id,
+                        AgentLink.child_id == secondary_id,
                     )
                 ).first()
             elif link_type == "workflow_agent":
