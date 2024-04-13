@@ -5,7 +5,7 @@ import { fetchJSON, getServerUrl } from "../../../utils";
 import { Button, Input, Select, Tabs, message, theme } from "antd";
 import { appContext } from "../../../../hooks/provider";
 import { BugAntIcon, UserGroupIcon } from "@heroicons/react/24/outline";
-import { WorkflowTypeSelector } from "./selectors";
+import { WorkflowAgentSelector, WorkflowTypeSelector } from "./selectors";
 
 const { useToken } = theme;
 
@@ -52,10 +52,8 @@ export const WorkflowViewConfig = ({
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        console.log("agents", data.data);
         const newWorkflow = data.data;
         setWorkflow(newWorkflow);
-        // setAgents(data.data);
       } else {
         message.error(data.message);
       }
@@ -132,20 +130,20 @@ export const WorkflowViewConfig = ({
         />
       </div>
 
-      <div className="w-full mt-4 text-right">
-        {" "}
-        <Button
-          className={`${hasChanged ? "opacity-50" : ""} `}
-          type="primary"
-          onClick={() => {
-            createWorkflow(localWorkflow);
-          }}
-          loading={loading}
-          disabled={hasChanged}
-        >
-          {workflow.id ? "Update Workflow" : "Create Workflow"}
-        </Button>
-      </div>
+      {!hasChanged && (
+        <div className="w-full mt-4 text-right">
+          {" "}
+          <Button
+            type="primary"
+            onClick={() => {
+              createWorkflow(localWorkflow);
+            }}
+            loading={loading}
+          >
+            {workflow.id ? "Update Workflow" : "Create Workflow"}
+          </Button>
+        </div>
+      )}
     </>
   );
 };
@@ -203,19 +201,23 @@ export const WorflowViewer = ({
           </div>
         ),
         key: "2",
-        children: <>"workflow agent selector"</>,
+        children: (
+          <>
+            <WorkflowAgentSelector workflowId={workflow.id} />{" "}
+          </>
+        ),
       });
     }
   }
 
   return (
-    <>
+    <div className="text-primary">
       {/* <RenderView viewIndex={currentViewIndex} /> */}
       <Tabs
         tabBarStyle={{ paddingLeft: 0, marginLeft: 0 }}
         defaultActiveKey="1"
         items={items}
       />
-    </>
+    </div>
   );
 };

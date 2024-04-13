@@ -145,8 +145,9 @@ class WorkflowAgentType(str, Enum):
 class WorkflowAgentLink(SQLModel, table=True):
     workflow_id: int = Field(default=None, primary_key=True, foreign_key="workflow.id")
     agent_id: int = Field(default=None, primary_key=True, foreign_key="agent.id")
-    link_type: WorkflowAgentType = Field(
-        default=WorkflowAgentType.sender, sa_column=Column(SqlEnum(WorkflowAgentType))
+    agent_type: WorkflowAgentType = Field(
+        default=WorkflowAgentType.sender,
+        sa_column=Column(SqlEnum(WorkflowAgentType), primary_key=True),
     )
 
 

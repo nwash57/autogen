@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlmodel import SQLModel, Session, create_engine, select, and_
 from datetime import datetime
 import logging
@@ -93,26 +94,45 @@ class DBManager:
         """Delete an entity"""
         row = None
         status_message = ""
-        if filters:
-            conditions = [
-                getattr(model_class, col) == value for col, value in filters.items()
-            ]
-            row = self.session.exec(select(model_class).where(and_(*conditions))).all()
-        else:
-            row = self.session.exec(select(model_class)).all()
-        if row:
-            for row in row:
-                self.session.delete(row)
-            self.session.commit()
-            status_message = "Deleted Successfully"
-        else:
-            print(f"Row with filters {filters} not found")
-            logger.info("Row with filters %s not found", filters)
-            status_message = "Row not found"
-        return status_message
+        status = True
+        try:
+            if filters:
+                conditions = [
+                    getattr(model_class, col) == value for col, value in filters.items()
+                ]
+                row = self.session.exec(
+                    select(model_class).where(and_(*conditions))
+                ).all()
+            else:
+                row = self.session.exec(select(model_class)).all()
+            if row:
+                for row in row:
+                    self.session.delete(row)
+                self.session.commit()
+                status_message = f"{model_class.__name__} Deleted Successfully"
+            else:
+                print(f"Row with filters {filters} not found")
+                logger.info("Row with filters %s not found", filters)
+                status_message = "Row not found"
+        except Exception as e:
+            self.session.rollback()
+            logger.error("Error while deleting: %s", e)
+            status_message = f"Error while deleting: {e}"
+            status = False
+        response = DBResponseModel(
+            message=status_message,
+            status=status,
+            data=None,
+        )
+        print(response)
+        return response
 
     def get_linked_entities(
-        self, link_type: str, primary_id: int, return_json: bool = False
+        self,
+        link_type: str,
+        primary_id: int,
+        return_json: bool = False,
+        agent_type: Optional[str] = None,
     ):
         """
         Get all entities linked to the primary entity.
@@ -144,8 +164,14 @@ class DBManager:
                 agent = self.get(Agent, filters={"id": primary_id})[0]
                 linked_entities = agent.children
             elif link_type == "workflow_agent":
-                workflow = self.get(Workflow, filters={"id": primary_id})[0]
-                linked_entities = workflow.agents
+                linked_entities = self.session.exec(
+                    select(Agent)
+                    .join(WorkflowAgentLink)
+                    .where(
+                        WorkflowAgentLink.workflow_id == primary_id,
+                        WorkflowAgentLink.agent_type == agent_type,
+                    )
+                ).all()
         except Exception as e:
             logger.error("Error while getting linked entities: %s", e)
             status_message = f"Error while getting linked entities: {e}"
@@ -162,7 +188,11 @@ class DBManager:
         return response
 
     def link(
-        self, link_type: str, primary_id: int, secondary_id: int
+        self,
+        link_type: str,
+        primary_id: int,
+        secondary_id: int,
+        agent_type: Optional[str] = None,
     ) -> DBResponseModel:
         """
         Link two entities together.
@@ -171,6 +201,7 @@ class DBManager:
             link_type (str): The type of link to create, e.g., "agent_model".
             primary_id (int): The identifier for the primary model.
             secondary_id (int): The identifier for the secondary model.
+            agent_type (Optional[str]): The type of agent, e.g., "sender" or receiver.
 
         Returns:
             DBResponseModel: The response of the linking operation, including success status and message.
@@ -288,6 +319,7 @@ class DBManager:
                             select(WorkflowAgentLink).where(
                                 WorkflowAgentLink.workflow_id == primary_id,
                                 WorkflowAgentLink.agent_id == secondary_id,
+                                WorkflowAgentLink.agent_type == agent_type,
                             )
                         ).first()
                         if existing_link:
@@ -299,7 +331,13 @@ class DBManager:
                                 status=False,
                             )
                         else:
-                            primary_model.agents.append(secondary_model)
+                            # primary_model.agents.append(secondary_model)
+                            workflow_agent_link = WorkflowAgentLink(
+                                workflow_id=primary_id,
+                                agent_id=secondary_id,
+                                agent_type=agent_type,
+                            )
+                            self.session.add(workflow_agent_link)
                 # add and commit the link
                 self.session.add(primary_model)
                 self.session.commit()
@@ -322,7 +360,11 @@ class DBManager:
         return response
 
     def unlink(
-        self, link_type: str, primary_id: int, secondary_id: int
+        self,
+        link_type: str,
+        primary_id: int,
+        secondary_id: int,
+        agent_type: Optional[str] = None,
     ) -> DBResponseModel:
         """
         Unlink two entities.
@@ -331,6 +373,7 @@ class DBManager:
             link_type (str): The type of link to remove, e.g., "agent_model".
             primary_id (int): The identifier for the primary model.
             secondary_id (int): The identifier for the secondary model.
+            agent_type (Optional[str]): The type of agent, e.g., "sender" or receiver.
 
         Returns:
             DBResponseModel: The response of the unlinking operation, including success status and message.
@@ -370,6 +413,7 @@ class DBManager:
                     select(WorkflowAgentLink).where(
                         WorkflowAgentLink.workflow_id == primary_id,
                         WorkflowAgentLink.agent_id == secondary_id,
+                        WorkflowAgentLink.agent_type == agent_type,
                     )
                 ).first()
 

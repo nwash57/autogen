@@ -158,24 +158,8 @@ def list_entity(model_class: Any, filters: dict = None):
 
 def delete_entity(model_class: Any, filters: dict = None):
     """Delete an entity"""
-    try:
-        status_message = dbmanager.delete(filters=filters, model_class=model_class)
-        entities = dbmanager.get(
-            model_class, filters={"user_id": filters["user_id"]}, return_json=True
-        )
-        return {
-            "status": True,
-            "message": f"Success - {model_class.__name__} {status_message}",
-            "data": entities,
-        }
 
-    except Exception as ex_error:
-        print(ex_error)
-        return {
-            "status": False,
-            "message": f"Error occurred while deleting {model_class.__name__}: "
-            + str(ex_error),
-        }
+    return dbmanager.delete(filters=filters, model_class=model_class)
 
 
 @api.get("/skills")
@@ -344,6 +328,39 @@ async def delete_workflow(workflow_id: int, user_id: str):
     """Delete a workflow"""
     filters = {"id": workflow_id, "user_id": user_id}
     return delete_entity(Workflow, filters=filters)
+
+
+@api.post("/workflows/link/agent/{workflow_id}/{agent_id}/{agent_type}")
+async def link_workflow_agent(workflow_id: int, agent_id: int, agent_type: str):
+    """Link an agent to a workflow"""
+    return dbmanager.link(
+        link_type="workflow_agent",
+        primary_id=workflow_id,
+        secondary_id=agent_id,
+        agent_type=agent_type,
+    )
+
+
+@api.delete("/workflows/link/agent/{workflow_id}/{agent_id}/{agent_type}")
+async def unlink_workflow_agent(workflow_id: int, agent_id: int, agent_type: str):
+    """Unlink an agent from a workflow"""
+    return dbmanager.unlink(
+        link_type="workflow_agent",
+        primary_id=workflow_id,
+        secondary_id=agent_id,
+        agent_type=agent_type,
+    )
+
+
+@api.get("/workflows/link/agent/{workflow_id}/{agent_type}")
+async def get_linked_workflow_agents(workflow_id: int, agent_type: str):
+    """Get all agents linked to a workflow"""
+    return dbmanager.get_linked_entities(
+        link_type="workflow_agent",
+        primary_id=workflow_id,
+        agent_type=agent_type,
+        return_json=True,
+    )
 
 
 @api.get("/sessions")

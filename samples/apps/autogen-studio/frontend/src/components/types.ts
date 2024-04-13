@@ -41,6 +41,12 @@ export interface IAgentConfig {
   default_auto_reply?: string | null;
   code_execution_config?: boolean | string | { [key: string]: any } | null;
   description?: string;
+
+  admin_name?: string;
+  messages?: Array<IMessage>;
+  max_round?: number;
+  speaker_selection_method?: string;
+  allow_repeat_speaker?: boolean;
 }
 
 export interface IAgent {

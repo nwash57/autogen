@@ -66,7 +66,7 @@ const ModelsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        setModels(data.data);
+        fetchModels();
       } else {
         message.error(data.message);
       }
@@ -514,17 +514,6 @@ const ModelsView = ({}: any) => {
             {" "}
             Create model configurations that can be reused in your agents and
             workflows. {selectedModel?.model}
-            {models && models.length > 0 && (
-              <span className="block my-2 border rounded border-secondary p-2">
-                <ExclamationTriangleIcon className="w-4 h-4 inline-block mr-1" />{" "}
-                Note: Changes made to your model do not automatically get
-                updated in your workflow. After creating or editing your model,{" "}
-                <span className="font-semibold underline">
-                  you must also (re-)add
-                </span>{" "}
-                it to your workflow.
-              </span>
-            )}
           </div>
           {models && models.length > 0 && (
             <div className="w-full  relative">

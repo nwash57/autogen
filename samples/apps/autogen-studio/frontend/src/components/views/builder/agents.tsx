@@ -26,6 +26,7 @@ import {
   LoadingOverlay,
 } from "../../atoms";
 import { AgentFlowSpecView } from "./utils/agentconfig";
+import { useConfigStore } from "../../../hooks/store";
 
 const AgentsView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -37,7 +38,6 @@ const AgentsView = ({}: any) => {
   const { user } = React.useContext(appContext);
   const serverUrl = getServerUrl();
   const listAgentsUrl = `${serverUrl}/agents?user_id=${user?.email}`;
-  const saveAgentsUrl = `${serverUrl}/agents`;
 
   const [agents, setAgents] = React.useState<IAgent[] | null>([]);
   const [selectedAgent, setSelectedAgent] = React.useState<IAgent | null>(null);
@@ -77,8 +77,7 @@ const AgentsView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        console.log("agents", data.data);
-        setAgents(data.data);
+        fetchAgents();
       } else {
         message.error(data.message);
       }
@@ -104,8 +103,6 @@ const AgentsView = ({}: any) => {
 
     const onSuccess = (data: any) => {
       if (data && data.status) {
-        // message.success(data.message);
-
         setAgents(data.data);
       } else {
         message.error(data.message);
@@ -120,56 +117,12 @@ const AgentsView = ({}: any) => {
     fetchJSON(listAgentsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveAgent = (agent: IAgent) => {
-    setError(null);
-    setLoading(true);
-    // const fetch;
-
-    agent.user_id = user?.email;
-
-    const payLoad = {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(agent),
-    };
-
-    console.log("saving agent", agent);
-
-    const onSuccess = (data: any) => {
-      if (data && data.status) {
-        message.success(data.message);
-        // console.log("agents", data.data);
-        setAgents(data.data);
-      } else {
-        message.error(data.message);
-      }
-      setLoading(false);
-      setNewAgent(sampleAgent);
-    };
-    const onError = (err: any) => {
-      setError(err);
-      message.error(err.message);
-      setLoading(false);
-    };
-    fetchJSON(saveAgentsUrl, payLoad, onSuccess, onError);
-  };
-
   React.useEffect(() => {
     if (user) {
       // console.log("fetching messages", messages);
       fetchAgents();
     }
   }, []);
-
-  React.useEffect(() => {
-    if (!showNewAgentModal) {
-      // refresh agents when modal closed
-      fetchAgents();
-    }
-  }, [showNewAgentModal]);
 
   const agentRows = (agents || []).map((agent: IAgent, i: number) => {
     const cardItems = [
@@ -273,6 +226,9 @@ const AgentsView = ({}: any) => {
         onCancel={() => {
           setAgent(null);
           setShowAgentModal(false);
+          if (handler) {
+            handler(localAgent);
+          }
         }}
         footer={[]}
       >
@@ -349,9 +305,7 @@ const AgentsView = ({}: any) => {
         setShowAgentModal={setShowAgentModal}
         showAgentModal={showAgentModal}
         handler={(agent: IAgent | null) => {
-          if (agent) {
-            saveAgent(agent);
-          }
+          fetchAgents();
         }}
       />
 
@@ -361,9 +315,7 @@ const AgentsView = ({}: any) => {
         setShowAgentModal={setShowNewAgentModal}
         showAgentModal={showNewAgentModal}
         handler={(agent: IAgent | null) => {
-          if (agent) {
-            saveAgent(agent);
-          }
+          fetchAgents();
         }}
       />
 

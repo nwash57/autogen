@@ -2,14 +2,13 @@ import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   DocumentDuplicateIcon,
-  ExclamationTriangleIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
   UserGroupIcon,
   UsersIcon,
 } from "@heroicons/react/24/outline";
-import { Button, Dropdown, MenuProps, Modal, Tooltip, message } from "antd";
+import { Dropdown, MenuProps, Modal, message } from "antd";
 import * as React from "react";
 import { IWorkflow, IStatus } from "../../types";
 import { appContext } from "../../../hooks/provider";
@@ -21,15 +20,8 @@ import {
   timeAgo,
   truncateText,
 } from "../../utils";
-import {
-  BounceLoader,
-  Card,
-  CardHoverBar,
-  FlowConfigViewer,
-  LaunchButton,
-  LoadingOverlay,
-} from "../../atoms";
-import { WorflowViewer, WorkflowViewConfig } from "./utils/workflowconfig";
+import { BounceLoader, Card, CardHoverBar, LoadingOverlay } from "../../atoms";
+import { WorflowViewer } from "./utils/workflowconfig";
 
 const WorkflowView = ({}: any) => {
   const [loading, setLoading] = React.useState(false);
@@ -68,7 +60,6 @@ const WorkflowView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         setWorkflows(data.data);
-        console.log("workflows", data.data);
       } else {
         message.error(data.message);
       }
@@ -101,7 +92,7 @@ const WorkflowView = ({}: any) => {
     const onSuccess = (data: any) => {
       if (data && data.status) {
         message.success(data.message);
-        setWorkflows(data.data);
+        fetchWorkFlow();
       } else {
         message.error(data.message);
       }
@@ -115,52 +106,12 @@ const WorkflowView = ({}: any) => {
     fetchJSON(deleteWorkflowsUrl, payLoad, onSuccess, onError);
   };
 
-  const saveWorkFlow = (workflow: IWorkflow) => {
-    setError(null);
-    setLoading(true);
-    // const fetch;
-
-    workflow.user_id = user?.email;
-    const payLoad = {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(workflow),
-    };
-
-    const onSuccess = (data: any) => {
-      if (data && data.status) {
-        message.success(data.message);
-        setWorkflows(data.data);
-      } else {
-        message.error(data.message);
-      }
-      setLoading(false);
-    };
-    const onError = (err: any) => {
-      setError(err);
-      message.error(err.message);
-      setLoading(false);
-    };
-    fetchJSON(saveWorkflowsUrl, payLoad, onSuccess, onError);
-  };
-
   React.useEffect(() => {
     if (user) {
       // console.log("fetching messages", messages);
       fetchWorkFlow();
     }
   }, []);
-
-  React.useEffect(() => {
-    console.log("showNewWorkflowModal", showNewWorkflowModal);
-    if (!showNewWorkflowModal) {
-      // refresh workflows when modal closed
-      fetchWorkFlow();
-    }
-  }, [showNewWorkflowModal]);
 
   React.useEffect(() => {
     if (selectedWorkflow) {
@@ -252,14 +203,14 @@ const WorkflowView = ({}: any) => {
   const WorkflowModal = ({
     workflow,
     setWorkflow,
-    showWorkflowModal,
-    setShowWorkflowModal,
+    showModal,
+    setShowModal,
     handler,
   }: {
     workflow: IWorkflow | null;
     setWorkflow?: (workflow: IWorkflow | null) => void;
-    showWorkflowModal: boolean;
-    setShowWorkflowModal: (show: boolean) => void;
+    showModal: boolean;
+    setShowModal: (show: boolean) => void;
     handler?: (workflow: IWorkflow) => void;
   }) => {
     const [localWorkflow, setLocalWorkflow] = React.useState<IWorkflow | null>(
@@ -277,25 +228,29 @@ const WorkflowView = ({}: any) => {
           </>
         }
         width={800}
-        open={showWorkflowModal}
+        open={showModal}
         onOk={() => {
-          setShowWorkflowModal(false);
+          setShowModal(false);
           if (handler) {
             handler(localWorkflow as IWorkflow);
           }
         }}
         onCancel={() => {
-          setShowWorkflowModal(false);
-          setWorkflow?.(null);
+          setShowModal(false);
+          if (handler) {
+            handler(localWorkflow as IWorkflow);
+          }
         }}
         footer={[]}
       >
-        {localWorkflow && (
-          <WorflowViewer
-            workflow={localWorkflow}
-            setWorkflow={setLocalWorkflow}
-          />
-        )}
+        <>
+          {localWorkflow && (
+            <WorflowViewer
+              workflow={localWorkflow}
+              setWorkflow={setLocalWorkflow}
+            />
+          )}
+        </>
       </Modal>
     );
   };
@@ -377,21 +332,19 @@ const WorkflowView = ({}: any) => {
       <WorkflowModal
         workflow={selectedWorkflow}
         setWorkflow={setSelectedWorkflow}
-        showWorkflowModal={showWorkflowModal}
-        setShowWorkflowModal={setShowWorkflowModal}
+        showModal={showWorkflowModal}
+        setShowModal={setShowWorkflowModal}
         handler={(workflow: IWorkflow) => {
-          saveWorkFlow(workflow);
-          setShowWorkflowModal(false);
+          fetchWorkFlow();
         }}
       />
 
       <WorkflowModal
         workflow={newWorkflow}
-        showWorkflowModal={showNewWorkflowModal}
-        setShowWorkflowModal={setShowNewWorkflowModal}
+        showModal={showNewWorkflowModal}
+        setShowModal={setShowNewWorkflowModal}
         handler={(workflow: IWorkflow) => {
-          saveWorkFlow(workflow);
-          setShowNewWorkflowModal(false);
+          fetchWorkFlow();
         }}
       />
 

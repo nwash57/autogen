@@ -303,7 +303,7 @@ export const MessageBox = ({ title, children, className }: IProps) => {
 export const GroupView = ({
   children,
   title,
-  className = " bg-primary ",
+  className = "text-primary bg-primary ",
 }: any) => {
   return (
     <div className={`rounded mt-4  border-secondary   ${className}`}>
@@ -593,7 +593,7 @@ export const ControlRowView = ({
 }: {
   title: string;
   description: string;
-  value: string | number;
+  value: string | number | boolean;
   control: any;
   className?: string;
 }) => {

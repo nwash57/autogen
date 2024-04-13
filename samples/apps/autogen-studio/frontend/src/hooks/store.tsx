@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { v4 as uuidv4 } from "uuid";
 
-import { IChatMessage, IChatSession, IFlowConfig } from "../components/types";
+import { IChatMessage, IChatSession } from "../components/types";
 
 interface ConfigState {
   messages: IChatMessage[] | null;
