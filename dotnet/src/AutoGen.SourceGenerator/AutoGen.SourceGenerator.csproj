@@ -11,6 +11,7 @@
 	  <LaunchDebugger>false</LaunchDebugger>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
 	  <DefineConstants Condition="'$(LaunchDebugger)' == 'true'">$(DefineConstants);LAUNCH_DEBUGGER</DefineConstants>
+    <Version>0.0.13-custom-$([System.DateTime]::UtcNow.ToString('yyMMddhhmm'))</Version>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />

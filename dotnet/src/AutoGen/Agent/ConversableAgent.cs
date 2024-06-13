@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AutoGen.LiteLLM;
 using AutoGen.OpenAI;
 
 namespace AutoGen;
@@ -85,6 +86,12 @@ public class ConversableAgent : IAgent
                 {
                     AzureOpenAIConfig azureConfig => new GPTAgent(this.Name!, this.systemMessage, azureConfig, temperature: config.Temperature ?? 0),
                     OpenAIConfig openAIConfig => new GPTAgent(this.Name!, this.systemMessage, openAIConfig, temperature: config.Temperature ?? 0),
+                    LiteLlmConfig liteLlmConfig => new LiteLlmStreamingAgent(
+                        this.Name,
+                        liteLlmConfig,
+                        systemMessage,
+                        functionMap: functionMap,
+                        seed: new Random().Next()),
                     _ => throw new ArgumentException($"Unsupported config type {llmConfig.GetType()}"),
                 },
                 IAgent innerAgent => innerAgent.RegisterReply(async (messages, cancellationToken) =>

@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>AutoGen.Core</RootNamespace>
+    <Version>0.0.13-custom-$([System.DateTime]::UtcNow.ToString('yyMMddhhmm'))</Version>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)/dotnet/nuget/nuget-package.props" />

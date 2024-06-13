@@ -1,5 +1,4 @@
 ﻿﻿<#@ template language="C#" linePragmas="false" visibility = "internal" #>
-<#@ assembly name="System.Core" #>
 <#@ import namespace="System.Linq" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="Microsoft.CodeAnalysis" #>

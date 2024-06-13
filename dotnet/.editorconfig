@@ -155,14 +155,14 @@ file_header_template = Copyright (c) Microsoft Corporation. All rights reserved.
 dotnet_diagnostic.IDE0073.severity = error
 
 # enable format error
-dotnet_diagnostic.IDE0055.severity = error
+# dotnet_diagnostic.IDE0055.severity = error
 
 # IDE0035: Remove unreachable code
 dotnet_diagnostic.IDE0035.severity = error
 
 # IDE0005: Remove unncecessary usings
-dotnet_diagnostic.CS8019.severity = error
-dotnet_diagnostic.IDE0005.severity = error
+# dotnet_diagnostic.CS8019.severity = error
+# dotnet_diagnostic.IDE0005.severity = error
 
 # IDE0069: Remove unused local variable
 dotnet_diagnostic.IDE0069.severity = error

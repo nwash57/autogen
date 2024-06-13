@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // LLMConfiguration.cs
 
+using AutoGen.LiteLLM;
 using AutoGen.OpenAI;
 
 namespace AutoGen.BasicSample;
@@ -36,5 +37,15 @@ internal static class LLMConfiguration
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
 
         return new AzureOpenAIConfig(endpoint, deployName, azureOpenAIKey);
+    }
+
+    public static LiteLlmConfig GetLiteLlmConfig(string model = "natural-functions")
+    {
+        return new LiteLlmConfig("localhost", 4000, model);
+    }
+
+    public static LiteLlmConfig GetFunctionaryConfig()
+    {
+        return new LiteLlmConfig("localhost", 8000, "meetkai/functionary-small-v2.4");
     }
 }

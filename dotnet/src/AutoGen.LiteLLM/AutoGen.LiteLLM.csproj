@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+      <GenerateDocumentationFile>true</GenerateDocumentationFile>
+      <RootNamespace>AutoGen.LiteLLM</RootNamespace>
+      <IsPackable>true</IsPackable>
+      <Version>0.0.13-custom-$([System.DateTime]::UtcNow.ToString('yyMMddhhmm'))</Version>
+    </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>AutoGen.LiteLLM</Title>
+    <Description>
+      Provide support for consuming LiteLLM openai-like API service in AutoGen
+    </Description>
+  </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+      <ProjectReference Include="..\AutoGen.OpenAI\AutoGen.OpenAI.csproj" />
+    </ItemGroup>
+
+</Project>

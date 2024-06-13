@@ -4,15 +4,42 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AutoGen.Core;
 
+public class LiteLlmToolCall
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("arguments")]
+    public Dictionary<string, object> Arguments { get; set; } = new();
+}
+
 public class ToolCall
 {
+    public ToolCall()
+    {
+        FunctionName = string.Empty;
+        FunctionArguments = string.Empty;
+    }
+
     public ToolCall(string functionName, string functionArgs)
     {
-        this.FunctionName = functionName;
-        this.FunctionArguments = functionArgs;
+        var toolCall = JsonSerializer.Deserialize<LiteLlmToolCall>(functionArgs, new JsonSerializerOptions());
+
+        if (!string.IsNullOrEmpty(toolCall?.Name))
+        {
+            FunctionName = toolCall!.Name;
+            FunctionArguments = JsonSerializer.Serialize(toolCall.Arguments);
+        }
+        else
+        {
+            this.FunctionName = functionName;
+            this.FunctionArguments = functionArgs;
+        }
     }
 
     public ToolCall(string functionName, string functionArgs, string result)
@@ -22,9 +49,9 @@ public class ToolCall
         this.Result = result;
     }
 
-    public string FunctionName { get; set; }
+    [JsonPropertyName("name")] public string FunctionName { get; set; }
 
-    public string FunctionArguments { get; set; }
+    [JsonPropertyName("arguments")] public string FunctionArguments { get; set; }
 
     public string? Result { get; set; }
 

@@ -13,7 +13,7 @@ public static class Example01_AssistantAgent
 {
     public static async Task RunAsync()
     {
-        var gpt35 = LLMConfiguration.GetAzureOpenAIGPT3_5_Turbo();
+        var gpt35 = LLMConfiguration.GetLiteLlmConfig();
         var config = new ConversableAgentConfig
         {
             Temperature = 0,
